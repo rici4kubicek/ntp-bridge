@@ -6,9 +6,16 @@
 #include <ESP8266WebServer.h>
 #include <DNSServer.h>
 #include <WiFiManager.h>
+#include "LittleFS.h"
+#include "ArduinoJson.h"
 
-const char *ssid = "<SSID>";
-const char *password = "<PASSWORD>";
+typedef struct
+{
+    char ap[60];
+    char password[60];
+} UserConfig;
+
+UserConfig config;
 
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP);
@@ -21,12 +28,29 @@ static void saveWiFiConfigCallback()
     shouldSaveConfig = true;
 }
 
+static void getConfig(UserConfig *config)
+{
+    File file = LittleFS.open("/ap-config.json", "r");
+    if (!file)
+        return;
+    StaticJsonDocument<512> doc;
+
+    strlcpy(config->ap, doc["ap"] | DEFAULT_SSID, sizeof(config->ap));
+    strlcpy(config->password, doc["password"] | DEFAULT_PASS, sizeof(config->password));
+
+    file.close();
+}
+
 void setup()
 {
     Serial.begin(115200);
+    LittleFS.begin();
+
+    getConfig(&config);
+
     wifiManager.autoConnect();
     wifiManager.setSaveConfigCallback(saveWiFiConfigCallback);
-    WiFi.begin(ssid, password);
+    WiFi.begin(config.ap, config.password);
 
     while (WiFi.status() != WL_CONNECTED)
     {
@@ -39,9 +63,12 @@ void setup()
 
 void loop()
 {
-    timeClient.update();
+    if (WiFi.status() != WL_CONNECTED)
+    {
+        timeClient.update();
 
-    Serial.println(timeClient.getFormattedTime());
+        Serial.println(timeClient.getFormattedTime());
+    }
 
     delay(1000);
 }
