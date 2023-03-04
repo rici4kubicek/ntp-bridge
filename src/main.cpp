@@ -7,30 +7,41 @@
 #include <DNSServer.h>
 #include <WiFiManager.h>
 
-const char *ssid     = "<SSID>";
+const char *ssid = "<SSID>";
 const char *password = "<PASSWORD>";
 
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP);
 WiFiManager wifiManager;
+static bool shouldSaveConfig = false;
 
-void setup() {
-  Serial.begin(115200);
-  wifiManager.autoConnect();
-  WiFi.begin(ssid, password);
-
-  while ( WiFi.status() != WL_CONNECTED ) {
-    delay ( 500 );
-    Serial.print ( "." );
-  }
-
-  timeClient.begin();
+// callback notifying us of the need to save config
+static void saveWiFiConfigCallback()
+{
+    shouldSaveConfig = true;
 }
 
-void loop() {
-  timeClient.update();
+void setup()
+{
+    Serial.begin(115200);
+    wifiManager.autoConnect();
+    wifiManager.setSaveConfigCallback(saveWiFiConfigCallback);
+    WiFi.begin(ssid, password);
 
-  Serial.println(timeClient.getFormattedTime());
+    while (WiFi.status() != WL_CONNECTED)
+    {
+        delay(500);
+        Serial.print(".");
+    }
 
-  delay(1000);
+    timeClient.begin();
+}
+
+void loop()
+{
+    timeClient.update();
+
+    Serial.println(timeClient.getFormattedTime());
+
+    delay(1000);
 }
