@@ -14,6 +14,8 @@ jobs:
             ~/.cache/pip
             ~/.platformio/.cache
           key: ${{ runner.os }}-pio
+      - name: Clean output folder
+        run: if [ -d "dist" ]; then rm -Rf dist; fi
       - uses: actions/setup-python@v4
         with:
           python-version: '3.9'
@@ -22,3 +24,8 @@ jobs:
 
       - name: Build PlatformIO Project
         run: pio run
+      - name: Use the Upload Artifact GitHub Action
+        uses: actions/upload-artifact@v3
+        with:
+          name: assets-for-download
+          path: dist/*
